@@ -24,8 +24,10 @@ public class Block<D extends Blockable> {
     }
 
     public String calculateHash() {
-        String operationString = operationList.toString();
-        return Utils.applySha256(index + Long.toString(timestamp) + previousHash + operationString + nonce);
+        StringBuilder operationsString = new StringBuilder();
+        operationList.forEach(d -> operationsString.append(d.getId()).append("_").append(d.getClass().getName()).append("_").append(d.getInfoForHash()).append("_").append(d.getTimeStamp()));
+
+        return Utils.applySha256(index + Long.toString(timestamp) + previousHash + operationsString + nonce);
     }
 
     public void mineBlock(int difficulty) {

@@ -1,5 +1,9 @@
 package htt.blockchain;
 
+import java.util.UUID;
+
 public interface Blockable {
-    String toString();
+    UUID getId();
+    long getTimeStamp();
+    String getInfoForHash();
 }

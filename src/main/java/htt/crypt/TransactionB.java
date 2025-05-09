@@ -1,19 +1,38 @@
 package htt.crypt;
 
 import htt.blockchain.Blockable;
-import lombok.AllArgsConstructor;
 
 import java.util.UUID;
 
-@AllArgsConstructor
+
 public class TransactionB implements Blockable {
-    private UUID fromUser;
-    private UUID toUser;
-    private double amount;
+    private final UUID id;
+    private final UUID fromUser;
+    private final UUID toUser;
+    private final long timeStamp;
+    private final double amount;
+
+    public TransactionB(UUID id, UUID fromUser, UUID toUser, double amount) {
+        this.id = id;
+        this.fromUser = fromUser;
+        this.toUser = toUser;
+        this.timeStamp = System.currentTimeMillis();
+        this.amount = amount;
+    }
 
     @Override
-    public String toString() {
-        return "Transaction -> {fromUser='" + fromUser + "',toUser='" + toUser+ "',amount='" + amount + "'}";
+    public UUID getId() {
+        return id;
+    }
+
+    @Override
+    public long getTimeStamp() {
+        return timeStamp;
+    }
+
+    @Override
+    public String getInfoForHash() {
+        return "{fromUser='" + fromUser + "',toUser='" + toUser+ "',amount='" + amount + "'}";
     }
 
 }

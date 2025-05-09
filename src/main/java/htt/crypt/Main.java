@@ -15,8 +15,8 @@ public class Main {
                 new Block<>(
                     1, System.currentTimeMillis(),
                     List.of(
-                        new TransactionA(UUID.randomUUID(), UUID.randomUUID(), 1),
-                        new TransactionB(UUID.randomUUID(), UUID.randomUUID(), 1)
+                        new TransactionA(UUID.randomUUID(),UUID.randomUUID(), UUID.randomUUID(), 1),
+                        new TransactionB(UUID.randomUUID(),UUID.randomUUID(), UUID.randomUUID(), 1)
                     ),
                     blockchain.getLatestBlock().getHash()
                 )
@@ -27,8 +27,8 @@ public class Main {
                 new Block<>(
                         2, System.currentTimeMillis(),
                         List.of(
-                                new TransactionA(UUID.randomUUID(), UUID.randomUUID(), 1),
-                                new TransactionB(UUID.randomUUID(), UUID.randomUUID(), 1)
+                                new TransactionA(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), 1),
+                                new TransactionB(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), 1)
                         ),
                         blockchain.getLatestBlock().getHash()
                 )
@@ -39,8 +39,8 @@ public class Main {
                 new Block<>(
                         3, System.currentTimeMillis(),
                         List.of(
-                                new TransactionA(UUID.randomUUID(), UUID.randomUUID(), 1),
-                                new TransactionB(UUID.randomUUID(), UUID.randomUUID(), 1)
+                                new TransactionA(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), 1),
+                                new TransactionB(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), 1)
                         ),
                         blockchain.getLatestBlock().getHash()
                 )
