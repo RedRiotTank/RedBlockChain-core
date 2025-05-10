@@ -2,10 +2,14 @@ package htt.crypt;
 
 import htt.blockchain.Blockable;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.UUID;
 
 
-public class TransactionA implements Blockable {
+public class TransactionA implements Blockable, Serializable {
+    @Serial private static final long serialVersionUID = 1L;
+
     private final UUID id;
     private final UUID fromUser;
     private final UUID toUser;

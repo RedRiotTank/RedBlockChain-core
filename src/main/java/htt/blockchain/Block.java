@@ -3,10 +3,14 @@ package htt.blockchain;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.List;
 
 
-public class Block<D extends Blockable> {
+public class Block<D extends Blockable> implements Serializable {
+    @Serial private static final long serialVersionUID = 1L;
+
     @Getter private final int index;
     private final long timestamp;
     @Getter @Setter private String previousHash;

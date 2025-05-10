@@ -2,10 +2,15 @@ package htt.blockchain;
 
 import lombok.Getter;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.ArrayList;
 
 @Getter
-public class Blockchain {
+public class Blockchain implements Serializable {
+    @Serial private static final long serialVersionUID = 1L;
+
+    @Getter private final OperationPool operationPool = new OperationPool();
     private ArrayList<Block<Blockable>> chain;
 
     public Blockchain() {
@@ -23,8 +28,6 @@ public class Blockchain {
 
     public void addBlock(Block<Blockable> newBlock) {
         newBlock.setPreviousHash(getLatestBlock().getHash());
-        int difficulty = 4;
-        newBlock.mineBlock(difficulty);
         chain.add(newBlock);
     }
 
@@ -37,5 +40,9 @@ public class Blockchain {
             if (!curr.getPreviousHash().equals(prev.getHash())) return false;
         }
         return true;
+    }
+
+    public void replaceChain(Blockchain newChain) {
+        this.chain = new ArrayList<>(newChain.getChain());
     }
 }
