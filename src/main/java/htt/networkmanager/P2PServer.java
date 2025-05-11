@@ -9,8 +9,10 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 public class P2PServer implements Runnable {
     private final Node node;
@@ -53,7 +55,7 @@ public class P2PServer implements Runnable {
         threadPool.shutdown();
     }
 
-    private static class ClientHandler implements Runnable {
+    private class ClientHandler implements Runnable {
         private final Socket socket;
         private final Node node;
 
@@ -64,13 +66,38 @@ public class P2PServer implements Runnable {
 
         @Override
         public void run() {
-            try (ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+            try (Socket socket = this.socket;
+                 ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
                  ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream())) {
 
-                Message message = (Message) in.readObject();
-                processMessage(message, out);
+                Message handshakeMsg = (Message) in.readObject();
+                if (handshakeMsg.getType() != Message.Type.HANDSHAKE) {
+                    throw new IOException("Handshake esperado");
+                }
+                int remotePort = (int) handshakeMsg.getPayload();
+                String remoteHost = socket.getInetAddress().getHostAddress();
 
-            } catch (IOException | ClassNotFoundException e) {
+                Peer peer = new Peer(remoteHost, remotePort, socket, in, out);
+                this.node.addPeer(peer);
+
+                out.writeObject(new Message(Message.Type.HANDSHAKE, this.node.getPort()));
+
+                List<String> peerList = this.node.getPeers().stream()
+                        .map(p -> p.getHost() + ":" + p.getListeningPort())
+                        .collect(Collectors.toList());
+                out.writeObject(new Message(Message.Type.PEER_EXCHANGE, peerList));
+
+                while (true) {
+                    Message msg = (Message) in.readObject();
+                    peer.updateLastSeen();
+                    if (!this.node.getProcessedMessageIds().contains(msg.getId())) {
+                        this.node.getProcessedMessageIds().add(msg.getId().toString());
+                        System.out.println("Mensaje recibido de tipo: " + msg.getType() + " desde: " + peer.getHost() + ":" + peer.getListeningPort());
+                        processMessage(msg, out);
+                        this.node.broadcastMessage(msg);
+                    }
+                }
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
@@ -88,6 +115,23 @@ public class P2PServer implements Runnable {
                     break;
                 case CHAIN_RESPONSE:
                     node.replaceChain((Blockchain) message.getPayload());
+                    break;
+                case PEER_EXCHANGE:
+                    @SuppressWarnings("unchecked")
+                    List<String> receivedPeers = (List<String>) message.getPayload();
+                    for (String peerStr : receivedPeers) {
+                        String[] parts = peerStr.split(":");
+                        String host = parts[0];
+                        int port = Integer.parseInt(parts[1]);
+
+                        if (!host.equals(this.node.getHost()) || port != this.node.getPort()) {
+                            try {
+                                node.connectToPeer(host, port);
+                            } catch (IOException e) {
+                                System.err.println("Error conectando a peer: " + peerStr);
+                            }
+                        }
+                    }
                     break;
             }
         }

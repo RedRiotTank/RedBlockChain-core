@@ -11,37 +11,79 @@ import lombok.Getter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class Node {
+    @Getter private final String host;
     @Getter private final Blockchain blockchain;
     private final P2PServer p2pServer;
-    private final CopyOnWriteArrayList<Peer> peers = new CopyOnWriteArrayList<>();
-    private final String nodeId;
-    private final int port;
+    @Getter private final CopyOnWriteArrayList<Peer> peers = new CopyOnWriteArrayList<>();
+    @Getter private final Set<String> processedMessageIds = ConcurrentHashMap.newKeySet();
 
-    public Node(String nodeId, int port) {
-        this.nodeId = nodeId;
+    @Getter private int port;
+
+    public Node(String host, int port) {
+        this.host = host;
         this.port = port;
         this.blockchain = new Blockchain();
         this.p2pServer = new P2PServer(this, port);
         new Thread(p2pServer).start();
+        startHeartbeatChecker();
+    }
+
+    private void startHeartbeatChecker() {
+        Executors.newScheduledThreadPool(1).scheduleAtFixedRate(() -> {
+            long now = System.currentTimeMillis();
+            peers.removeIf(peer -> {
+                if (now - peer.getLastSeen() > 120_000) {
+                    try {
+                        peer.disconnect();
+                    } catch (IOException e) {
+                    }
+                    return true;
+                }
+                return false;
+            });
+        }, 1, 1, TimeUnit.MINUTES);
+    }
+
+    public void addPeer(Peer peer) {
+        if (peers.stream().noneMatch(p ->
+                p.getHost().equals(peer.getHost()) && p.getListeningPort() == peer.getListeningPort())) {
+            peers.add(peer);
+            System.out.println("Nuevo peer añadido: " + peer.getHost() + ":" + peer.getListeningPort());
+        }
     }
 
     public void connectToPeer(String host, int port) throws IOException {
         Peer peer = new Peer(host, port);
         peer.connect();
-        peers.add(peer);
 
-        peer.sendMessage(new Message(Message.Type.CHAIN_REQUEST, null));
+        peer.sendMessage(new Message(Message.Type.HANDSHAKE, this.port));
+
+        List<String> peerList = peers.stream()
+                .filter(p -> !p.getHost().equals(peer.getHost()) || p.getListeningPort() != peer.getListeningPort())
+                .map(p -> p.getHost() + ":" + p.getListeningPort())
+                .collect(Collectors.toList());
+        peer.sendMessage(new Message(Message.Type.PEER_EXCHANGE, peerList));
+
+        peers.add(peer);
     }
 
     public void broadcastMessage(Message message) {
+        if (processedMessageIds.contains(message.getId())) return;
+
+        processedMessageIds.add(message.getId());
         peers.forEach(peer -> {
             try {
                 peer.sendMessage(message);
             } catch (IOException e) {
-                System.err.println("Error sending message to peer: " + e.getMessage());
+                System.err.println("Error enviando mensaje a " + peer.getHost() + ": " + e.getMessage());
                 peers.remove(peer);
             }
         });
